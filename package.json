@@ -1,0 +1,36 @@
+{
+  "name": "mk-dex",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MK-DEX — turn any screen into a Samsung DeX display (scrcpy virtual display over USB).",
+  "type": "module",
+  "scripts": {
+    "postinstall": "fetch-scrcpy-server 3.3.3",
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "android:sync": "npm run build && cap sync android",
+    "android:open": "cap open android"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@capacitor/android": "^8.6.0",
+    "@capacitor/core": "^8.6.0",
+    "@yume-chan/adb": "^2.6.4",
+    "@yume-chan/adb-credential-web": "^2.1.0",
+    "@yume-chan/adb-daemon-webusb": "^2.3.2",
+    "@yume-chan/adb-scrcpy": "^2.3.2",
+    "@yume-chan/fetch-scrcpy-server": "^1.0.0",
+    "@yume-chan/scrcpy": "^2.3.0",
+    "@yume-chan/scrcpy-decoder-webcodecs": "^2.5.3",
+    "@yume-chan/stream-extra": "^2.6.1"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.6.0",
+    "@types/w3c-web-usb": "^1.0.14",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5"
+  }
+}

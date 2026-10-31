@@ -1,0 +1,14 @@
+{
+  "name": "MK-DEX — Display Link",
+  "short_name": "MK-DEX",
+  "description": "Turn any screen into a Samsung DeX display over USB.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#1d2116",
+  "theme_color": "#2f3524",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#2f3524" />
+    <meta name="description" content="MK-DEX turns any screen into a Samsung DeX display over USB." />
+    <link rel="icon" href="./icon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <title>MK-DEX // Display Link</title>
+  </head>
+  <body>
+    <main id="setup" class="setup">
+      <header class="brand">
+        <div class="brand-mark" aria-hidden="true"><span>71</span></div>
+        <div>
+          <h1>MK-DEX</h1>
+          <p class="tag">DISPLAY LINK // ANY SCREEN → SAMSUNG DEX</p>
+        </div>
+        <span id="backend" class="chip">…</span>
+      </header>
+
+      <section class="panel connect">
+        <h2><span class="idx">01</span> Link phone</h2>
+        <p class="muted">Plug the DeX phone into this device with a USB-C cable, then hit connect.</p>
+        <button id="connect" class="btn-primary">Connect phone</button>
+        <p id="error" class="error" hidden></p>
+      </section>
+
+      <section class="panel">
+        <h2><span class="idx">02</span> Display</h2>
+        <div class="grid">
+          <label>Resolution
+            <select id="preset"></select>
+          </label>
+          <label>UI scale
+            <select id="scale"></select>
+          </label>
+          <label>Bitrate
+            <select id="bitrate">
+              <option value="4000000">4 Mbps — saver</option>
+              <option value="8000000" selected>8 Mbps — balanced</option>
+              <option value="16000000">16 Mbps — sharp</option>
+              <option value="24000000">24 Mbps — max</option>
+            </select>
+          </label>
+          <label>Frame rate
+            <select id="fps">
+              <option value="30">30 fps</option>
+              <option value="60" selected>60 fps</option>
+            </select>
+          </label>
+          <label>Codec
+            <select id="codec">
+              <option value="h264" selected>H.264 (most compatible)</option>
+              <option value="h265">H.265 (sharper, less bandwidth)</option>
+            </select>
+          </label>
+        </div>
+        <p class="muted small" id="resolved"></p>
+      </section>
+
+      <section class="panel checklist">
+        <h2><span class="idx">03</span> Pre-flight</h2>
+        <ol>
+          <li><b>Galaxy on One UI 8+</b> (Android 16). Older firmware can't run DeX on a virtual display.</li>
+          <li><b>USB debugging on</b>: Settings → About phone → Software info → tap <i>Build number</i> 7×, then Developer options → USB debugging.</li>
+          <li><b>Phone → tablet/phone?</b> The display device must be the USB <i>host</i>. If nothing shows up, pull down notifications on the display device → USB → “USB controlled by: this device”.</li>
+          <li><b>Accept the RSA prompt</b> on the phone the first time (tick “Always allow”).</li>
+        </ol>
+      </section>
+
+      <section class="panel log-panel">
+        <h2><span class="idx">04</span> Telemetry</h2>
+        <pre id="log" class="log"></pre>
+      </section>
+
+      <footer class="foot">MAVRO KINETIC · #71 · powered by scrcpy + Tango</footer>
+    </main>
+
+    <div id="live" class="live" hidden>
+      <div id="screen" class="screen"></div>
+      <nav id="hud" class="hud">
+        <button data-key="back" title="Back">◁</button>
+        <button data-key="home" title="Home">○</button>
+        <button data-key="recents" title="Recents">▢</button>
+        <button id="kbd" title="Type text">⌨</button>
+        <button id="fs" title="Fullscreen">⛶</button>
+        <button id="disconnect" class="danger" title="Disconnect">✕</button>
+        <button id="hud-toggle" class="grip" title="Hide toolbar">⋮</button>
+      </nav>
+      <form id="typebar" class="typebar" hidden>
+        <input id="typein" autocomplete="off" placeholder="Type, then Send" />
+        <button type="submit">Send</button>
+      </form>
+    </div>
+
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>

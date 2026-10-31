@@ -1,0 +1,8 @@
+{
+  "appId": "com.mavrokinetic.mkdex",
+  "appName": "MK-DEX",
+  "webDir": "dist",
+  "android": {
+    "allowMixedContent": false
+  }
+}
