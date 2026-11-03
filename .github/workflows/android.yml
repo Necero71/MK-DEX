@@ -1,11 +1,21 @@
 name: Android APK
 
+# APK pipeline: releases (v* tags), manual runs, and native-side changes only.
+# Web-only pushes don't trigger it. Need a test APK after a JS change?
+# Actions → Android APK → Run workflow.
 on:
   push:
-    branches: [main]
     tags: ["v*"]
-  pull_request:
+    branches: [main]
+    paths:
+      - "android/**"
+      - "capacitor.config.json"
+      - ".github/workflows/android.yml"
   workflow_dispatch:
+
+concurrency:
+  group: apk-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: write

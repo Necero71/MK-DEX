@@ -1,8 +1,17 @@
 name: Web app → GitHub Pages
 
+# Web pipeline: deploys the built site (dist/) to GitHub Pages.
+# Native-only changes (android/**) don't trigger it.
+# Requires Settings → Pages → Source = "GitHub Actions".
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "android/**"
+      - "capacitor.config.json"
+      - ".github/workflows/android.yml"
+      - "docs/**"
+      - "**.md"
   workflow_dispatch:
 
 permissions:
