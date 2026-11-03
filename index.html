@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#2f3524" />
-    <meta name="description" content="MK-DEX turns any screen into a Samsung DeX display over USB." />
+    <meta name="description" content="MK-DEX turns any screen into a Samsung DeX display over USB or Wi-Fi." />
     <link rel="icon" href="./icon.svg" type="image/svg+xml" />
     <link rel="manifest" href="./manifest.webmanifest" />
     <title>MK-DEX // Display Link</title>
@@ -24,6 +24,17 @@
         <h2><span class="idx">01</span> Link phone</h2>
         <p class="muted">Plug the DeX phone into this device with a USB-C cable, then hit connect.</p>
         <button id="connect" class="btn-primary">Connect phone</button>
+
+        <div id="wifi" class="wifi" hidden>
+          <h3>Wi-Fi link <span class="badge">CABLE-FREE</span></h3>
+          <p class="muted small-body">Once per phone reboot: plug in over USB and hit <b>Enable Wi-Fi</b>. Then unplug and connect over the air. Both devices must be on the same Wi-Fi (or the display device on the phone's hotspot).</p>
+          <div class="wifi-row">
+            <input id="wifi-host" autocomplete="off" inputmode="decimal" placeholder="Phone IP · e.g. 192.168.0.12" aria-label="Phone IP address" />
+            <button id="wifi-connect" class="btn-primary">Connect over Wi-Fi</button>
+          </div>
+          <button id="wifi-enable" class="btn-ghost">Enable Wi-Fi (needs USB once)</button>
+        </div>
+
         <p id="error" class="error" hidden></p>
       </section>
 

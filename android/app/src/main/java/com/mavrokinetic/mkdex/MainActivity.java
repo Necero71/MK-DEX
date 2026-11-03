@@ -13,6 +13,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(MkUsbPlugin.class);
+        registerPlugin(MkTcpPlugin.class);
         super.onCreate(savedInstanceState);
         // This device is a monitor now: stay on, edge-to-edge, no system bars.
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);

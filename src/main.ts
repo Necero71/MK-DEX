@@ -3,6 +3,9 @@ import { DexSession } from "./dex/session";
 import { PRESETS, SCALES, resolveDisplay, type ScaleId } from "./dex/display";
 import { pressKey } from "./dex/input";
 import { pickPhone, usbBackend } from "./usb";
+import type { PhoneLink } from "./link/types";
+import { TcpPhone } from "./net/native-tcp";
+import { enableWifi, parseHostPort } from "./net/wifi";
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -23,7 +26,13 @@ const ui = {
   hud: $("hud"),
   typebar: $<HTMLFormElement>("typebar"),
   typein: $<HTMLInputElement>("typein"),
+  wifi: $("wifi"),
+  wifiHost: $<HTMLInputElement>("wifi-host"),
+  wifiConnect: $<HTMLButtonElement>("wifi-connect"),
+  wifiEnable: $<HTMLButtonElement>("wifi-enable"),
 };
+
+const WIFI_KEY = "mk-dex:wifi-host";
 
 // ---------- settings (persisted per browser; storage may be unavailable) ----------
 const KEY = "mk-dex:settings";
@@ -83,16 +92,16 @@ if (backend === "none") {
 let session: DexSession | undefined;
 let wakeLock: WakeLockSentinel | undefined;
 
-ui.connect.addEventListener("click", async () => {
+async function startSession(getLink: () => Promise<PhoneLink | undefined>) {
   showError();
-  ui.connect.disabled = true;
+  setBusy(true);
   try {
-    const device = await pickPhone();
-    if (!device) {
+    const link = await getLink();
+    if (!link) {
       log("No phone selected.");
       return;
     }
-    session = new DexSession(device, {
+    session = new DexSession(link, {
       display: currentDisplay(),
       bitRate: Number(ui.bitrate.value),
       maxFps: Number(ui.fps.value),
@@ -111,8 +120,56 @@ ui.connect.addEventListener("click", async () => {
     await session?.stop();
     endSession();
   } finally {
-    ui.connect.disabled = backend === "none";
+    setBusy(false);
   }
+}
+
+function setBusy(busy: boolean) {
+  ui.connect.disabled = busy || backend === "none";
+  ui.wifiEnable.disabled = busy || backend === "none";
+  ui.wifiConnect.disabled = busy;
+}
+
+ui.connect.addEventListener("click", () => void startSession(pickPhone));
+
+// ---------- Wi-Fi (APK only: needs native TCP sockets) ----------
+if (backend === "native") {
+  ui.wifi.hidden = false;
+  try { ui.wifiHost.value = localStorage.getItem(WIFI_KEY) ?? ""; } catch { /* no storage */ }
+}
+
+function rememberHost(host: string) {
+  ui.wifiHost.value = host;
+  try { localStorage.setItem(WIFI_KEY, host); } catch { /* no storage */ }
+}
+
+ui.wifiEnable.addEventListener("click", async () => {
+  showError();
+  setBusy(true);
+  try {
+    const link = await pickPhone();
+    if (!link) return log("No phone selected.");
+    const ip = await enableWifi(link, log);
+    rememberHost(ip);
+    log(`✓ Wi-Fi ready. Unplug the cable, then hit “Connect over Wi-Fi” (${ip}).`);
+  } catch (e) {
+    const msg = describeError(e);
+    log(`✕ ${msg}`);
+    showError(msg);
+  } finally {
+    setBusy(false);
+  }
+});
+
+ui.wifiConnect.addEventListener("click", () => {
+  const target = parseHostPort(ui.wifiHost.value);
+  if (!target) {
+    showError("Enter the phone's IP, e.g. 192.168.0.12 (find it under Settings → Connections → Wi-Fi → ⚙ on your network).");
+    ui.wifiHost.focus();
+    return;
+  }
+  rememberHost(ui.wifiHost.value.trim());
+  void startSession(async () => new TcpPhone(target.host, target.port));
 });
 
 function endSession() {
@@ -131,6 +188,9 @@ function describeError(e: unknown): string {
   const msg = e instanceof Error ? e.message : String(e);
   if (name === "DeviceBusyError" || /busy|claim/i.test(msg)) {
     return "USB interface is busy — another ADB (Android Studio, scrcpy, adb server) has the phone. Run `adb kill-server` and retry.";
+  }
+  if (/Can't reach|ECONNREFUSED|refused|timed out|EHOSTUNREACH|ENETUNREACH/i.test(msg)) {
+    return `${msg}. Phone not listening on Wi-Fi — it was rebooted or USB debugging was toggled. Plug in and hit “Enable Wi-Fi” again, and check both devices are on the same network.`;
   }
   if (/Permission|denied/i.test(msg)) return "USB permission was denied. Unplug, replug, and allow access.";
   return msg;
@@ -179,4 +239,4 @@ ui.typebar.addEventListener("submit", async (e) => {
   ui.typein.value = "";
 });
 
-log(`MK-DEX ready · USB backend: ${backend}`);
+log(`MK-DEX ready · USB backend: ${backend}${backend === "native" ? " · Wi-Fi: available" : ""}`);

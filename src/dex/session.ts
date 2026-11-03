@@ -1,6 +1,4 @@
 import { Adb, AdbDaemonTransport } from "@yume-chan/adb";
-import AdbWebCredentialStore from "@yume-chan/adb-credential-web";
-import type { AdbDaemonWebUsbDevice } from "@yume-chan/adb-daemon-webusb";
 import { AdbScrcpyClient, AdbScrcpyOptions3_3_3 } from "@yume-chan/adb-scrcpy";
 import { BIN, VERSION } from "@yume-chan/fetch-scrcpy-server";
 import { DefaultServerPath, ScrcpyNewDisplay } from "@yume-chan/scrcpy";
@@ -12,6 +10,8 @@ import {
 import { ReadableStream, WritableStream } from "@yume-chan/stream-extra";
 import { attachInput, type InputHandle } from "./input";
 import type { DisplaySpec } from "./display";
+import { credentialStore } from "./credentials";
+import type { PhoneLink } from "../link/types";
 
 export interface SessionOptions {
   display: DisplaySpec;
@@ -22,10 +22,8 @@ export interface SessionOptions {
   log: (line: string) => void;
 }
 
-const credentialStore = new AdbWebCredentialStore("MK-DEX");
-
 /**
- * One live DeX session: ADB over USB → scrcpy server with a virtual display
+ * One live DeX session: ADB over USB or Wi-Fi → scrcpy server with a virtual display
  * → WebCodecs decode into a canvas, with mouse/touch/keyboard sent back.
  */
 export class DexSession {
@@ -39,7 +37,7 @@ export class DexSession {
   #resolveClosed!: () => void;
 
   constructor(
-    private readonly device: AdbDaemonWebUsbDevice,
+    private readonly device: PhoneLink,
     private readonly opts: SessionOptions,
   ) {
     this.closed = new Promise((r) => (this.#resolveClosed = r));
@@ -56,10 +54,13 @@ export class DexSession {
   async start(host: HTMLElement): Promise<HTMLCanvasElement> {
     const { log } = this.opts;
 
-    log(`Opening USB link to ${this.deviceName}…`);
+    const wifi = this.device.kind === "wifi";
+    log(`Opening ${wifi ? "Wi-Fi" : "USB"} link to ${this.deviceName}…`);
     const connection = await this.device.connect();
 
-    log("Authenticating — accept the “Allow USB debugging” prompt on the phone.");
+    log(wifi
+      ? "Authenticating — if the phone asks, allow debugging from this device."
+      : "Authenticating — accept the “Allow USB debugging” prompt on the phone.");
     const transport = await AdbDaemonTransport.authenticate({
       serial: this.device.serial,
       connection,

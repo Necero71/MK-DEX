@@ -4,6 +4,7 @@ import {
   AdbDaemonWebUsbDeviceManager,
 } from "@yume-chan/adb-daemon-webusb";
 import { NativeUsb } from "./native-usb";
+import type { PhoneLink } from "../link/types";
 
 export type UsbBackend = "webusb" | "native" | "none";
 
@@ -19,7 +20,16 @@ export function usbBackend(): UsbBackend {
  * Ask the user to pick the DeX phone.
  * Browser: Chrome's WebUSB chooser. APK: Android's USB permission dialog.
  */
-export async function pickPhone(): Promise<AdbDaemonWebUsbDevice | undefined> {
+export async function pickPhone(): Promise<PhoneLink | undefined> {
+  const d = await pickUsbDevice();
+  return d && usbLink(d);
+}
+
+function usbLink(d: AdbDaemonWebUsbDevice): PhoneLink {
+  return { kind: "usb", serial: d.serial, name: d.name, connect: () => d.connect() as never };
+}
+
+async function pickUsbDevice(): Promise<AdbDaemonWebUsbDevice | undefined> {
   switch (usbBackend()) {
     case "webusb":
       return AdbDaemonWebUsbDeviceManager.BROWSER!.requestDevice();

@@ -39,6 +39,19 @@ Web app: deployed to GitHub Pages from `main`. APK: download from the **Actions 
 3. **Connect phone** → select it → accept the prompt on the phone.
 4. DeX appears. Side toolbar: Back / Home / Recents / type text / fullscreen / disconnect.
 
+## Wi-Fi mode (Android app)
+
+Cable-free after a one-time USB step. Only works in the **APK**, because browsers can't open raw TCP sockets.
+
+1. Plug the phone in and tap **Enable Wi-Fi (needs USB once)**. MK-DEX reads the phone's Wi-Fi IP and switches ADB to port 5555.
+2. Unplug, then tap **Connect over Wi-Fi**. The IP is remembered.
+3. Do it again after the phone reboots or USB debugging is toggled.
+
+- **No router?** Turn on the phone's hotspot and join it from the display device. MK-DEX picks the hotspot address automatically.
+- **Already ran `adb tcpip 5555` from a PC?** Type the phone's IP in and connect.
+- **Latency:** 5 GHz Wi-Fi works best. Drop to 8 Mbps / 30 fps if it stutters.
+- **Security:** while it's on, anyone on the same network can request ADB access. The phone still asks before trusting a new key. Reboot the phone to switch it off.
+
 ## Develop
 
 ```bash
@@ -59,15 +72,20 @@ src/
   dex/display.ts     resolution + DPI maths
   usb/index.ts       picks WebUSB or the native bridge
   usb/native-usb.ts  WebUSB-compatible shim over the MkUsb plugin
+  net/adb-stream.ts  ADB packet framing over a TCP byte stream
+  net/native-tcp.ts  MkTcp plugin → socket → PhoneLink
+  net/wifi.ts        enable tcpip 5555 over USB, pick the phone's IP
 android/app/src/main/java/com/mavrokinetic/mkdex/
   MkUsbPlugin.java   UsbManager ↔ JS (permission, claim, bulk transfers)
+  MkTcpPlugin.java   raw TCP sockets ↔ JS (ADB over Wi-Fi)
 ```
 
 ## Roadmap
 
 - [x] v0.1 — USB mode: web/PWA + Android APK
 - [ ] Audio forwarding (Opus → WebAudio)
-- [ ] Wi-Fi mode (Wireless debugging pairing, native TCP in the APK)
+- [x] v0.2 — Wi-Fi mode in the APK (enable over USB once, then cable-free)
+- [ ] Wi-Fi pairing with no cable at all (Android 11+ Wireless debugging + TLS)
 - [ ] Desktop build (Electron/Tauri) with bundled adb for one-click
 - [ ] **Miracast receiver mode** so the device shows up under DeX → Wireless — see [docs/MIRACAST.md](docs/MIRACAST.md)
 
