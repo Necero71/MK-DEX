@@ -1,6 +1,6 @@
 # MK-DEX // Display Link
 
-**Turn any screen into a Samsung DeX display.** Plug your Galaxy into a laptop, a Linux box, an Android tablet or an old phone with one USB-C cable, and get the full DeX desktop on that screen — mouse, keyboard and touch included.
+**Turn any screen into a Samsung DeX display.** Plug your Galaxy into a Windows PC (web or `.exe`), a Linux box, an Android tablet or an old phone with one USB-C cable, and get the full DeX desktop on that screen — mouse, keyboard and touch included.
 
 Built by **Mavro Kinetic · #71**.
 
@@ -24,7 +24,7 @@ No root. Nothing to install on the phone.
 | Android tablet / phone | **Chrome** (web app) *or* the **MK-DEX APK** | WebUSB / native UsbManager plugin |
 | Firefox / Safari / iOS | ❌ no WebUSB | — |
 
-Web app: deployed to GitHub Pages from `main`. APK: download from the **Actions → Android APK** run (artifact) or a `v*` release.
+Web app: deployed to GitHub Pages from `main`. Windows `.exe`: see [Windows app](#windows-app). APK: download from the **Actions → Android APK** run (artifact) or a `v*` release.
 
 ## Requirements
 
@@ -37,8 +37,8 @@ Web app: deployed to GitHub Pages from `main`. APK: download from the **Actions 
 
 1. Open MK-DEX on the display device.
 2. Pick resolution (**Auto** matches the screen), UI scale, bitrate.
-3. **Connect phone** → select it → accept the prompt on the phone.
-4. DeX appears. Side toolbar: Back / Home / Recents / type text / fullscreen / disconnect.
+3. **Connect phone** → select it → accept the prompt on the phone. Next time, hit **Reconnect**.
+4. DeX appears. Side toolbar: Back / Home / Recents / type text / fullscreen / disconnect. Drag `⋮` to move it.
 
 ## Wi-Fi mode (Android app)
 
@@ -82,6 +82,10 @@ npm run dev          # http://localhost:5173 (WebUSB needs localhost or https)
 npm test
 npm run build
 
+# Windows desktop shell (Electron)
+cd desktop && npm install && npm start
+cd ..
+
 # Android
 npm run android:sync # build + copy into android/
 npm run android:open # Android Studio → Run
@@ -89,6 +93,9 @@ npm run android:open # Android Studio → Run
 
 ```
 src/
+  main.ts            UI, session lifecycle, auto-reconnect
+  reconnect.ts       last-phone memory + retry backoff
+  toolbar.ts         draggable, collapsible toolbar
   dex/session.ts     ADB auth → push server → virtual display → decode
   dex/input.ts       pointer / wheel / keyboard → scrcpy control messages
   dex/display.ts     resolution + DPI maths
@@ -97,6 +104,9 @@ src/
   net/adb-stream.ts  ADB packet framing over a TCP byte stream
   net/native-tcp.ts  MkTcp plugin → socket → PhoneLink
   net/wifi.ts        enable tcpip 5555 over USB, pick the phone's IP
+desktop/
+  main.cjs           Electron shell: app:// origin, USB permissions
+  copy-web.cjs       copies dist/ into the desktop app
 android/app/src/main/java/com/mavrokinetic/mkdex/
   MkUsbPlugin.java   UsbManager ↔ JS (permission, claim, bulk transfers)
   MkTcpPlugin.java   raw TCP sockets ↔ JS (ADB over Wi-Fi)
