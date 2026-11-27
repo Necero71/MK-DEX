@@ -24,6 +24,12 @@
         <h2><span class="idx">01</span> Link phone</h2>
         <p class="muted">Plug the DeX phone into this device with a USB-C cable, then hit connect.</p>
         <button id="connect" class="btn-primary">Connect phone</button>
+        <button id="reconnect" class="btn-ghost" hidden></button>
+        <label class="check"><input id="auto-retry" type="checkbox" checked /> Auto-reconnect if the link drops</label>
+        <div id="retrybar" class="retrybar" role="status" hidden>
+          <span id="retry-text"></span>
+          <button id="retry-cancel" type="button" class="btn-ghost">Cancel</button>
+        </div>
 
         <div id="wifi" class="wifi" hidden>
           <h3>Wi-Fi link <span class="badge">CABLE-FREE</span></h3>
@@ -98,7 +104,7 @@
         <button id="kbd" title="Type text">⌨</button>
         <button id="fs" title="Fullscreen">⛶</button>
         <button id="disconnect" class="danger" title="Disconnect">✕</button>
-        <button id="hud-toggle" class="grip" title="Hide toolbar">⋮</button>
+        <button id="hud-toggle" class="grip" title="Drag to move · tap to hide or show" aria-label="Move or collapse toolbar">⋮</button>
       </nav>
       <form id="typebar" class="typebar" hidden>
         <input id="typein" autocomplete="off" placeholder="Type, then Send" />

@@ -1,6 +1,6 @@
 {
   "name": "mk-dex",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "MK-DEX — turn any screen into a Samsung DeX display (scrcpy virtual display over USB or Wi-Fi).",
   "type": "module",

@@ -20,6 +20,7 @@ No root. Nothing to install on the phone.
 | Display device | How | USB access |
 |---|---|---|
 | Windows / macOS / Linux / ChromeOS | Open the web app in **Chrome or Edge** (installable as a PWA) | WebUSB |
+| Windows (desktop app) | **MK-DEX .exe** (portable or installer) | WebUSB |
 | Android tablet / phone | **Chrome** (web app) *or* the **MK-DEX APK** | WebUSB / native UsbManager plugin |
 | Firefox / Safari / iOS | ❌ no WebUSB | — |
 
@@ -51,6 +52,27 @@ Cable-free after a one-time USB step. Only works in the **APK**, because browser
 - **Already ran `adb tcpip 5555` from a PC?** Type the phone's IP in and connect.
 - **Latency:** 5 GHz Wi-Fi works best. Drop to 8 Mbps / 30 fps if it stutters.
 - **Security:** while it's on, anyone on the same network can request ADB access. The phone still asks before trusting a new key. Reboot the phone to switch it off.
+
+## Reconnect and toolbar
+
+- **Reconnect** on the setup screen links the last phone in one tap.
+- **Auto-reconnect** retries a dropped link 5 times (about 30 s of waiting). Untick it to switch it off.
+- **Toolbar:** drag `⋮` to move it, tap it to hide or show. Both are remembered.
+
+## Windows app
+
+Get it from **Actions → Windows EXE** (artifact) or a `v*` release. To build it yourself on Windows:
+
+```bash
+npm install
+cd desktop
+npm install
+npm run dist      # .exe files land in desktop/out/
+```
+
+- USB only; Wi-Fi mode is still Android-app only.
+- The `.exe` isn't code-signed, so SmartScreen may warn: **More info → Run anyway**.
+- Close other ADB users first (`adb kill-server`).
 
 ## Develop
 
@@ -86,7 +108,8 @@ android/app/src/main/java/com/mavrokinetic/mkdex/
 - [ ] Audio forwarding (Opus → WebAudio)
 - [x] v0.2 — Wi-Fi mode in the APK (enable over USB once, then cable-free)
 - [ ] Wi-Fi pairing with no cable at all (Android 11+ Wireless debugging + TLS)
-- [ ] Desktop build (Electron/Tauri) with bundled adb for one-click
+- [x] v0.3 — Windows desktop app (Electron, WebUSB)
+- [ ] Desktop: bundled adb for one-click, Wi-Fi mode
 - [ ] **Miracast receiver mode** so the device shows up under DeX → Wireless — see [docs/MIRACAST.md](docs/MIRACAST.md)
 
 ## Credits & licence

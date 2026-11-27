@@ -25,6 +25,22 @@ export async function pickPhone(): Promise<PhoneLink | undefined> {
   return d && usbLink(d);
 }
 
+/** The previously used phone, if it's plugged in and we still hold permission. No prompt. */
+export async function findPhone(serial: string): Promise<PhoneLink | undefined> {
+  let manager: AdbDaemonWebUsbDeviceManager | undefined;
+  switch (usbBackend()) {
+    case "webusb":
+      manager = AdbDaemonWebUsbDeviceManager.BROWSER;
+      break;
+    case "native":
+      native ??= new NativeUsb();
+      manager = new AdbDaemonWebUsbDeviceManager(native as unknown as USB);
+      break;
+  }
+  const d = (await manager?.getDevices())?.find((x) => x.serial === serial);
+  return d && usbLink(d);
+}
+
 function usbLink(d: AdbDaemonWebUsbDevice): PhoneLink {
   return { kind: "usb", serial: d.serial, name: d.name, connect: () => d.connect() as never };
 }

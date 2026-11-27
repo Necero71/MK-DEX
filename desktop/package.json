@@ -1,0 +1,32 @@
+{
+  "name": "mk-dex-desktop",
+  "productName": "MK-DEX",
+  "version": "0.3.0",
+  "description": "MK-DEX for Windows: any screen into a Samsung DeX display.",
+  "author": "Mavro Kinetic",
+  "license": "MIT",
+  "private": true,
+  "main": "main.cjs",
+  "scripts": {
+    "web": "npm --prefix .. run build && node copy-web.cjs",
+    "start": "npm run web && electron .",
+    "dist": "npm run web && electron-builder --win --publish never"
+  },
+  "devDependencies": {
+    "electron": "^45.5.0",
+    "electron-builder": "^26.18.0"
+  },
+  "build": {
+    "appId": "io.github.necero71.mkdex",
+    "productName": "MK-DEX",
+    "directories": { "output": "out", "buildResources": "build" },
+    "files": ["main.cjs", "web/**/*"],
+    "win": { "target": ["portable", "nsis"], "icon": "build/icon.png" },
+    "portable": { "artifactName": "MK-DEX-${version}-portable.exe" },
+    "nsis": {
+      "artifactName": "MK-DEX-${version}-setup.exe",
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}

@@ -133,6 +133,10 @@ export class DexSession {
     const canvas = renderer.canvas as HTMLCanvasElement;
     canvas.className = "dex-canvas";
     canvas.tabIndex = 0;
+    if (this.#closed) {
+      await this.#release();
+      throw new Error("Connection cancelled.");
+    }
     host.replaceChildren(canvas);
 
     void video.stream.pipeTo(this.#decoder.writable).catch((e) => {
@@ -146,6 +150,12 @@ export class DexSession {
     }));
     canvas.focus();
 
+    // Disconnected while we were still setting up: release what was created since.
+    if (this.#closed) {
+      await this.#release();
+      throw new Error("Connection cancelled.");
+    }
+
     log("DeX is live. Mouse, touch and keyboard are forwarded to the phone.");
     return canvas;
   }
@@ -158,11 +168,15 @@ export class DexSession {
   async stop() {
     if (this.#closed) return;
     this.#closed = true;
+    await this.#release();
+    this.#resolveClosed();
+  }
+
+  async #release() {
     this.#input?.detach();
     try { await this.#client?.close(); } catch { /* already gone */ }
     this.#decoder?.dispose();
     try { await this.#adb?.close(); } catch { /* already gone */ }
-    this.#resolveClosed();
   }
 }
 

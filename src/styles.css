@@ -260,8 +260,26 @@ select:focus-visible, button:focus-visible, input:focus-visible { outline: 2px s
 }
 .hud button:hover { background: var(--olive-600); }
 .hud button.danger { color: var(--red); }
-.hud button.grip { height: 22px; background: transparent; color: var(--olive-400); }
+.hud button.grip { height: 32px; background: transparent; color: var(--olive-400); cursor: grab; touch-action: none; user-select: none; }
+.hud button.grip:active { cursor: grabbing; }
 .hud.collapsed button:not(.grip) { display: none; }
+
+.check { display: flex; align-items: center; gap: 8px; margin-top: 12px; cursor: pointer; }
+.check input { width: 18px; height: 18px; accent-color: var(--coyote); }
+.retrybar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--coyote);
+  font-family: var(--mono);
+  font-size: 0.85rem;
+}
+.retrybar button { margin: 0; }
+#reconnect { margin-left: 8px; }
 
 .typebar {
   position: absolute;

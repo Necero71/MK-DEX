@@ -2,7 +2,9 @@ import "./styles.css";
 import { DexSession } from "./dex/session";
 import { PRESETS, SCALES, resolveDisplay, type ScaleId } from "./dex/display";
 import { pressKey } from "./dex/input";
-import { pickPhone, usbBackend } from "./usb";
+import { findPhone, pickPhone, usbBackend } from "./usb";
+import { loadLastPhone, retry, saveLastPhone, type LastPhone } from "./reconnect";
+import { attachToolbar } from "./toolbar";
 import type { PhoneLink } from "./link/types";
 import { TcpPhone } from "./net/native-tcp";
 import { enableWifi, parseHostPort } from "./net/wifi";
@@ -30,7 +32,20 @@ const ui = {
   wifiHost: $<HTMLInputElement>("wifi-host"),
   wifiConnect: $<HTMLButtonElement>("wifi-connect"),
   wifiEnable: $<HTMLButtonElement>("wifi-enable"),
+  reconnect: $<HTMLButtonElement>("reconnect"),
+  autoRetry: $<HTMLInputElement>("auto-retry"),
+  retrybar: $("retrybar"),
+  retryText: $("retry-text"),
 };
+
+const AUTO_KEY = "mk-dex:auto-reconnect";
+try { ui.autoRetry.checked = localStorage.getItem(AUTO_KEY) !== "off"; } catch { /* no storage */ }
+ui.autoRetry.addEventListener("change", () => {
+  try { localStorage.setItem(AUTO_KEY, ui.autoRetry.checked ? "on" : "off"); } catch { /* no storage */ }
+  if (!ui.autoRetry.checked) retrying?.abort();
+});
+
+const toolbar = attachToolbar($("hud"), $("hud-toggle"), $("live"));
 
 const WIFI_KEY = "mk-dex:wifi-host";
 
@@ -92,45 +107,141 @@ if (backend === "none") {
 let session: DexSession | undefined;
 let wakeLock: WakeLockSentinel | undefined;
 
-async function startSession(getLink: () => Promise<PhoneLink | undefined>) {
+let userStopped = false;
+let retrying: AbortController | undefined;
+
+/** Resolves true once DeX is live. `quiet` is for automatic retries. */
+async function startSession(getLink: () => Promise<PhoneLink | undefined>, quiet = false): Promise<boolean> {
   showError();
   setBusy(true);
+  userStopped = false;
+  let current: DexSession | undefined;
+  const showLive = () => {
+    ui.setup.hidden = true;
+    ui.live.hidden = false;
+    toolbar.apply();
+  };
   try {
     const link = await getLink();
     if (!link) {
-      log("No phone selected.");
-      return;
+      if (!quiet) log("No phone selected.");
+      return false;
     }
-    session = new DexSession(link, {
+    current = session = new DexSession(link, {
       display: currentDisplay(),
       bitRate: Number(ui.bitrate.value),
       maxFps: Number(ui.fps.value),
       codec: ui.codec.value as "h264" | "h265",
       log,
     });
-    ui.setup.hidden = true;
-    ui.live.hidden = false;
-    await session.start(ui.screen);
+    // Retries stay on the setup screen (with Cancel) until the picture is back.
+    if (!quiet) showLive();
+    const canvas = await current.start(ui.screen);
+    if (quiet) {
+      showLive();
+      canvas.focus();
+    }
+
+    const phone: LastPhone = link.kind === "wifi"
+      ? { kind: "wifi", host: link.serial }
+      : { kind: "usb", serial: link.serial, name: link.name };
+    saveLastPhone(phone);
+    showReconnect();
     void keepAwake();
-    void session.closed.then(endSession);
+    const live = current;
+    void live.closed.then(() => {
+      if (session !== live) return;
+      endSession();
+      if (!userStopped && ui.autoRetry.checked) void autoReconnect(phone);
+    });
+    return true;
   } catch (e) {
+    const cancelled = userStopped;
+    await current?.stop();
+    // A cancelled attempt that finished late must not tear down a newer session.
+    if (current && session !== current && session !== undefined) return false;
+    endSession();
+    if (cancelled) return false;
     const msg = describeError(e);
     log(`✕ ${msg}`);
-    showError(msg);
-    await session?.stop();
-    endSession();
+    if (!quiet) showError(msg);
+    return false;
   } finally {
     setBusy(false);
   }
 }
 
 function setBusy(busy: boolean) {
-  ui.connect.disabled = busy || backend === "none";
-  ui.wifiEnable.disabled = busy || backend === "none";
-  ui.wifiConnect.disabled = busy;
+  const locked = busy || retrying !== undefined;
+  ui.connect.disabled = locked || backend === "none";
+  ui.wifiEnable.disabled = locked || backend === "none";
+  ui.wifiConnect.disabled = locked;
+  ui.reconnect.disabled = locked;
 }
 
 ui.connect.addEventListener("click", () => void startSession(pickPhone));
+
+// ---------- reconnect ----------
+function linkFor(phone: LastPhone): Promise<PhoneLink | undefined> {
+  if (phone.kind === "usb") return findPhone(phone.serial);
+  const target = parseHostPort(phone.host);
+  return Promise.resolve(target && new TcpPhone(target.host, target.port));
+}
+
+function showReconnect() {
+  const phone = loadLastPhone();
+  // Wi-Fi needs native sockets; USB needs some USB backend.
+  const usable = phone && (phone.kind === "wifi" ? backend === "native" : backend !== "none");
+  ui.reconnect.hidden = !usable;
+  if (phone && usable) {
+    ui.reconnect.textContent = `↻ Reconnect ${phone.kind === "wifi" ? phone.host : phone.name || phone.serial}`;
+  }
+}
+
+ui.reconnect.addEventListener("click", () => {
+  const phone = loadLastPhone();
+  if (!phone) return;
+  void startSession(async () => {
+    const link = await linkFor(phone);
+    if (!link) throw new Error("Last phone isn't plugged in, or access was reset. Plug it in, or hit Connect phone.");
+    return link;
+  });
+});
+
+async function autoReconnect(phone: LastPhone) {
+  const ac = new AbortController();
+  retrying = ac;
+  ui.retrybar.hidden = false;
+  setBusy(false);
+  log("Link dropped — trying to get it back.");
+  const ok = await retry(
+    async () => {
+      ui.retryText.textContent = "Reconnecting…";
+      const started = await startSession(() => linkFor(phone), true);
+      // Cancelled while this attempt was in flight.
+      if (started && ac.signal.aborted) await stopByUser();
+      return started;
+    },
+    ac.signal,
+    (n, total, ms) => { ui.retryText.textContent = `Reconnecting in ${ms / 1000}s · attempt ${n} of ${total}`; },
+  );
+  const gaveUp = !ok && !ac.signal.aborted;
+  retrying = undefined;
+  ui.retrybar.hidden = true;
+  setBusy(false);
+  if (gaveUp) showError("Couldn't reconnect. Check the cable or Wi-Fi, then hit Reconnect.");
+}
+
+async function stopByUser() {
+  userStopped = true;
+  await session?.stop();
+}
+
+$("retry-cancel").addEventListener("click", () => {
+  retrying?.abort();
+  ui.retrybar.hidden = true;
+  void stopByUser();
+});
 
 // ---------- Wi-Fi (APK only: needs native TCP sockets) ----------
 if (backend === "native") {
@@ -211,7 +322,10 @@ ui.hud.addEventListener("click", (e) => {
   if (key && session.controller) void pressKey(session.controller, key);
 });
 
-$("disconnect").addEventListener("click", () => void session?.stop());
+$("disconnect").addEventListener("click", () => {
+  retrying?.abort();
+  void stopByUser();
+});
 
 $("fs").addEventListener("click", async () => {
   try {
@@ -225,8 +339,6 @@ $("fs").addEventListener("click", async () => {
   } catch { /* fullscreen not allowed */ }
 });
 
-$("hud-toggle").addEventListener("click", () => ui.hud.classList.toggle("collapsed"));
-
 $("kbd").addEventListener("click", () => {
   ui.typebar.hidden = !ui.typebar.hidden;
   if (!ui.typebar.hidden) ui.typein.focus();
@@ -239,4 +351,5 @@ ui.typebar.addEventListener("submit", async (e) => {
   ui.typein.value = "";
 });
 
+showReconnect();
 log(`MK-DEX ready · USB backend: ${backend}${backend === "native" ? " · Wi-Fi: available" : ""}`);

@@ -7,3 +7,5 @@ android/.gradle/
 android/local.properties
 android/app/src/main/assets/public/
 android/.idea/
+desktop/web/
+desktop/out/

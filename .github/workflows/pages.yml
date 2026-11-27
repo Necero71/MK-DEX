@@ -7,6 +7,8 @@ on:
   push:
     branches: [main]
     paths-ignore:
+      - "desktop/**"
+      - ".github/workflows/desktop.yml"
       - "android/**"
       - "capacitor.config.json"
       - ".github/workflows/android.yml"
